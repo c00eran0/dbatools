@@ -74,7 +74,7 @@ Gets estimated completion times for queries performed against the Northwind, pub
 		[parameter(Mandatory = $true, ValueFromPipeline = $true)]
 		[Alias("ServerInstance", "SqlServer")]
 		[DbaInstanceParameter[]]$SqlInstance,
-		[PsCredential]$SqlCredential,
+		[PSCredential][System.Management.Automation.CredentialAttribute()]$SqlCredential,
 		[Alias("Databases")]
 		[object[]]$Database,
 		[object[]]$ExcludeDatabase,
@@ -118,7 +118,7 @@ Gets estimated completion times for queries performed against the Northwind, pub
 				
 			}
 			catch {
-				Stop-Function -Message "Can't connect to $instance. Moving on." -Continue
+				Stop-Function -Message "Failure" -Category ConnectionError -ErrorRecord $_ -Target $instance -Continue
 			}
 			
 			if ($Database) {
@@ -132,8 +132,7 @@ Gets estimated completion times for queries performed against the Northwind, pub
 			}
 			
 			Write-Message -Level Debug -Message $sql
-			#Invoke-DbaSqlcmd -ServerInstance $instance -Credential $SqlCredential -Query $sql | Select-DefaultView -ExcludeProperty Text
-			foreach ($row in (Invoke-DbaSqlcmd -ServerInstance $instance -Credential $SqlCredential -Query $sql)) {
+			foreach ($row in ($server.Query($sql))) {
 				[pscustomobject]@{
 					ComputerName = $server.NetName
 					InstanceName = $server.ServiceName

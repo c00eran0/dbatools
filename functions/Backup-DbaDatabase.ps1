@@ -122,7 +122,7 @@ sql credential dbatoolscred registered on the sql2016 instance
 	param (
 		[parameter(ParameterSetName = "Pipe", Mandatory = $true)]
 		[DbaInstanceParameter[]]$SqlInstance,
-		[System.Management.Automation.PSCredential]$SqlCredential,
+		[PSCredential][System.Management.Automation.CredentialAttribute()]$SqlCredential,
 		[Alias("Databases")]
 		[object[]]$Database,
 		[object[]]$ExcludeDatabase,
@@ -237,7 +237,9 @@ sql credential dbatoolscred registered on the sql2016 instance
 				Write-Message -Level Verbose -Message "$dbname is in $($Database.RecoveryModel) recovery model"
 			}
 			
-			if ($Database.RecoveryModel -eq 'Simple' -and $Type -eq 'Log') {
+			# Fixes one-off cases of StackOverflowException crashes, see issue 1481 
+			$dbRecovery = $Database.RecoveryModel.ToString()
+ 			if ($dbRecovery -eq 'Simple' -and $Type -eq 'Log') {
 				$failreason = "$database is in simple recovery mode, cannot take log backup"
 				$failures += $failreason
 				Write-Message -Level Warning -Message "$failreason"

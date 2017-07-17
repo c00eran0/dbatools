@@ -52,7 +52,7 @@ FUNCTION Get-DbaAgentAlert {
 				$server = Connect-SqlInstance -SqlInstance $instance -SqlCredential $sqlcredential
 			}
 			catch {
-				Stop-Function -Message "Failed to connect to $instance : $($_.Exception.Message)" -Continue -Target $instance -InnerErrorRecord $_
+				Stop-Function -Message "Failure" -Category ConnectionError -ErrorRecord $_ -Target $instance -Continue
 			}
 			
 			Write-Message -Level Verbose -Message "Getting Edition from $server"
@@ -69,11 +69,11 @@ FUNCTION Get-DbaAgentAlert {
 			foreach ($alert in $alerts) {
 				$lastraised = [dbadatetime]$alert.LastOccurrenceDate
 				
-				Add-Member -InputObject $alert -MemberType NoteProperty -Name ComputerName -value $server.NetName
-				Add-Member -InputObject $alert -MemberType NoteProperty -Name InstanceName -value $server.ServiceName
-				Add-Member -InputObject $alert -MemberType NoteProperty -Name SqlInstance -value $server.DomainInstanceName
-				Add-Member -InputObject $alert -MemberType NoteProperty Notifications -value $alert.EnumNotifications()
-				Add-Member -InputObject $alert -MemberType NoteProperty LastRaised -value $lastraised
+				Add-Member -Force -InputObject $alert -MemberType NoteProperty -Name ComputerName -value $server.NetName
+				Add-Member -Force -InputObject $alert -MemberType NoteProperty -Name InstanceName -value $server.ServiceName
+				Add-Member -Force -InputObject $alert -MemberType NoteProperty -Name SqlInstance -value $server.DomainInstanceName
+				Add-Member -Force -InputObject $alert -MemberType NoteProperty Notifications -value $alert.EnumNotifications()
+				Add-Member -Force -InputObject $alert -MemberType NoteProperty LastRaised -value $lastraised
 				
 				Select-DefaultView -InputObject $alert -Property $defaults
 			}

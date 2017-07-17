@@ -51,7 +51,7 @@ function Get-DbaDatabaseFile {
 	param (
 		[parameter(ParameterSetName = "Pipe", Mandatory, ValueFromPipeline)]
 		[DbaInstanceParameter[]]$SqlInstance,
-		[System.Management.Automation.PSCredential]$SqlCredential,
+		[PSCredential][System.Management.Automation.CredentialAttribute()]$SqlCredential,
 		[Alias("Databases")]
 		[object[]]$Database,
 		[object[]]$ExcludeDatabase,
@@ -68,7 +68,7 @@ function Get-DbaDatabaseFile {
 				$server = Connect-SqlInstance -SqlInstance $instance -SqlCredential $sqlcredential
 			}
 			catch {
-				Stop-Function -Message "Failed to connect to $instance. Exception: $_" -Continue -Target $instance -InnerErrorRecord $_
+				Stop-Function -Message "Failure" -Category ConnectionError -ErrorRecord $_ -Target $instance -Continue
 			}
 			
 			Write-Message -Level Verbose -Message "Databases provided"
@@ -160,7 +160,7 @@ function Get-DbaDatabaseFile {
 					continue
 				}
 				Write-Message -Level Verbose -Message "Querying database $db"
-				$results = Invoke-DbaSqlcmd -ServerInstance $server -Query $sql -Database $db.name
+				$results = $server.Query($sql,$db.name)
 				
 				foreach ($result in $results) {
 					$size = [dbasize]($result.Size * 8192)
@@ -180,7 +180,7 @@ function Get-DbaDatabaseFile {
 						$VolumeFreeSpace = [dbasize]$result.VolumeFreeSpace
 					}
 					else {
-						$disks = Invoke-DbaSqlcmd -ServerInstance $server -Query "xp_fixeddrives" -Database $db.name
+						$disks = $server.Query("xp_fixeddrives",$db.name)
 						$free = $disks | Where-Object { $_.drive -eq $result.PhysicalName.Substring(0, 1) } | Select-Object 'MB Free' -ExpandProperty 'MB Free'
 						$VolumeFreeSpace = [dbasize]($free * 1024 * 1024)
 					}

@@ -51,7 +51,7 @@ Suppresses all prompts to install but prompts to securely enter your password an
 		[parameter(Mandatory, ValueFromPipeline)]
 		[Alias("ServerInstance", "SqlServer")]
 		[DbaInstanceParameter[]]$SqlInstance,
-		[System.Management.Automation.PSCredential]$SqlCredential,
+		[PSCredential][System.Management.Automation.CredentialAttribute()]$SqlCredential,
 		[object[]]$Database = "master",
 		[parameter(Mandatory)]
 		[Security.SecureString]$Password = (Read-Host "Password" -AsSecureString),
@@ -65,7 +65,7 @@ Suppresses all prompts to install but prompts to securely enter your password an
 				$server = Connect-SqlInstance -SqlInstance $instance -SqlCredential $sqlcredential
 			}
 			catch {
-				Stop-Function -Message "Failed to connect to: $instance" -Target $instance -InnerErrorRecord $_ -Continue
+				Stop-Function -Message "Failure" -Category ConnectionError -ErrorRecord $_ -Target $instance -Continue
 			}
 			
 			foreach ($db in $Database) {
@@ -84,10 +84,10 @@ Suppresses all prompts to install but prompts to securely enter your password an
 						$masterkey = New-Object Microsoft.SqlServer.Management.Smo.MasterKey $smodb
 						$masterkey.Create(([System.Runtime.InteropServices.marshal]::PtrToStringAuto([System.Runtime.InteropServices.marshal]::SecureStringToBSTR($password))))
 						
-						Add-Member -InputObject $masterkey -MemberType NoteProperty -Name ComputerName -value $server.NetName
-						Add-Member -InputObject $masterkey -MemberType NoteProperty -Name InstanceName -value $server.ServiceName
-						Add-Member -InputObject $masterkey -MemberType NoteProperty -Name SqlInstance -value $server.DomainInstanceName
-						Add-Member -InputObject $masterkey -MemberType NoteProperty -Name Database -value $smodb
+						Add-Member -Force -InputObject $masterkey -MemberType NoteProperty -Name ComputerName -value $server.NetName
+						Add-Member -Force -InputObject $masterkey -MemberType NoteProperty -Name InstanceName -value $server.ServiceName
+						Add-Member -Force -InputObject $masterkey -MemberType NoteProperty -Name SqlInstance -value $server.DomainInstanceName
+						Add-Member -Force -InputObject $masterkey -MemberType NoteProperty -Name Database -value $smodb
 						
 						Select-DefaultView -InputObject $masterkey -Property ComputerName, InstanceName, SqlInstance, Database, CreateDate, DateLastModified, IsEncryptedByServer
 					}

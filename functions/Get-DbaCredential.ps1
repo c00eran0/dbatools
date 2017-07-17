@@ -14,6 +14,9 @@ to be executed against multiple SQL Server instances.
 .PARAMETER SqlCredential
 SqlCredential object to connect as. If not specified, current Windows login will be used.
 
+.PARAMETER Silent
+Use this switch to disable any kind of verbose messages.
+
 .NOTES
 Author: Garry Bargsley (@gbargsley), http://blog.garrybargsley.com
 
@@ -41,7 +44,8 @@ Returns all SQL Credentials for the local and sql2016 SQL Server instances
 	Param (
 		[parameter(Position = 0, Mandatory = $true, ValueFromPipeline = $True)]
 		[DbaInstanceParameter]$SqlInstance,
-		[System.Management.Automation.PSCredential]$SqlCredential
+		[PSCredential][System.Management.Automation.CredentialAttribute()]$SqlCredential,
+		[switch]$Silent
 	)
 	
 	PROCESS
@@ -55,16 +59,15 @@ Returns all SQL Credentials for the local and sql2016 SQL Server instances
 			}
 			catch
 			{
-				Write-Warning "Can't connect to $instance or access denied. Skipping."
-				continue
+				Stop-Function -Message "Failure" -Category ConnectionError -ErrorRecord $_ -Target $instance -Continue
 			}
 			
 			
 			foreach ($credential in $server.Credentials)
 			{
-				Add-Member -InputObject $credential -MemberType NoteProperty -Name ComputerName -value $credential.Parent.NetName
-				Add-Member -InputObject $credential -MemberType NoteProperty -Name InstanceName -value $credential.Parent.ServiceName
-				Add-Member -InputObject $credential -MemberType NoteProperty -Name SqlInstance -value $credential.Parent.DomainInstanceName
+				Add-Member -Force -InputObject $credential -MemberType NoteProperty -Name ComputerName -value $credential.Parent.NetName
+				Add-Member -Force -InputObject $credential -MemberType NoteProperty -Name InstanceName -value $credential.Parent.ServiceName
+				Add-Member -Force -InputObject $credential -MemberType NoteProperty -Name SqlInstance -value $credential.Parent.DomainInstanceName
 				
 				Select-DefaultView -InputObject $credential -Property ComputerName, InstanceName, SqlInstance, ID, Name, Identity, MappedClassType, ProviderName
 			}

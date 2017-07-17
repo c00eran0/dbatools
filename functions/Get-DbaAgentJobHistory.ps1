@@ -136,9 +136,9 @@
 				}
 				
 				foreach ($execution in $executions) {
-					Add-Member -InputObject $execution -MemberType NoteProperty -Name ComputerName -value $server.NetName
-					Add-Member -InputObject $execution -MemberType NoteProperty -Name InstanceName -value $server.ServiceName
-					Add-Member -InputObject $execution -MemberType NoteProperty -Name SqlInstance -value $server.DomainInstanceName
+					Add-Member -Force -InputObject $execution -MemberType NoteProperty -Name ComputerName -value $server.NetName
+					Add-Member -Force -InputObject $execution -MemberType NoteProperty -Name InstanceName -value $server.ServiceName
+					Add-Member -Force -InputObject $execution -MemberType NoteProperty -Name SqlInstance -value $server.DomainInstanceName
 					
 					Select-DefaultView -InputObject $execution -Property ComputerName, InstanceName, SqlInstance, 'JobName as Job', StepName, RunDate, RunDuration, RunStatus
 				}
@@ -163,7 +163,7 @@
 				$server = Connect-SqlInstance -SqlInstance $instance -SqlCredential $SqlCredential
 			}
 			catch {
-				Stop-Function -Message "Could not connect to Sql Server instance $instance" -Target $instance -Continue -InnerErrorRecord $_
+				Stop-Function -Message "Failure" -Category ConnectionError -ErrorRecord $_ -Target $instance -Continue
 			}
 			
 			if ($ExcludeJob) {

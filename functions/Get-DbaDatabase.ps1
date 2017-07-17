@@ -46,13 +46,13 @@ function Get-DbaDatabase {
 			Returns databases without a full backup recorded by SQL Server. Will indicate those which only have CopyOnly full backups
 
 		.PARAMETER NoFullBackupSince
-			DateTime value. Returns list of SQL Server databases that haven't had a full backup since the passed iin DateTime
+			DateTime value. Returns list of SQL Server databases that haven't had a full backup since the passed in DateTime
 
 		.PARAMETER NoLogBackup
 			Returns databases without a Log backup recorded by SQL Server. Will indicate those which only have CopyOnly Log backups
 
 		.PARAMETER NoLogBackupSince
-			DateTime value. Returns list of SQL Server databases that haven't had a Log backup since the passed iin DateTime
+			DateTime value. Returns list of SQL Server databases that haven't had a Log backup since the passed in DateTime
 
 		.PARAMETER WhatIf
 			Shows what would happen if the command were to run. No actions are actually performed.
@@ -133,13 +133,13 @@ function Get-DbaDatabase {
 	begin {
 
 		if ($NoUserDb -and $NoSystemDb) {
-			Stop-Function -Message "You cannot specify both NoUserDb and NoSystemDb" -Continue -Silent $Silent
+			Stop-Function -Message "You cannot specify both NoUserDb and NoSystemDb" -Continue
 		}
 
 		if ($status.count -gt 0) {
 			foreach ($state in $status) {
 				if ($state -notin ('EmergencyMode', 'Normal', 'Offline', 'Recovering', 'Restoring', 'Standby', 'Suspect')) {
-					Stop-Function -Message "$state is not a valid status ('EmergencyMode', 'Normal', 'Offline', 'Recovering', 'Restoring', 'Standby', 'Suspect')" -Continue -Silent $Silent
+					Stop-Function -Message "$state is not a valid status ('EmergencyMode', 'Normal', 'Offline', 'Recovering', 'Restoring', 'Standby', 'Suspect')" -Continue
 				}
 			}
 		}
@@ -152,7 +152,7 @@ function Get-DbaDatabase {
 				$server = Connect-SqlInstance -SqlInstance $instance -SqlCredential $sqlcredential
 			}
 			catch {
-				Stop-Function -Message "Failed to connect to: $instance" -ErrorRecord $_ -Target $instance -Continue -Silent $Silent
+				Stop-Function -Message "Failure" -Category ConnectionError -ErrorRecord $_ -Target $instance -Continue
 			}
 
 			if ($NoUserDb) {
@@ -202,52 +202,54 @@ function Get-DbaDatabase {
 			}
 
 			if ($NoFullBackup -or $NoFullBackupSince) {
-				if ($NoFullBackup) {
-					$dabs = (Get-DbaBackuphistory -SqlInstance $server -LastFull -IgnoreCopyOnly).Database
+				$dabs = (Get-DbaBackupHistory -SqlInstance $server -LastFull -IgnoreCopyOnly)
+				if ($null -ne $NoFullBackupSince) {
+					$dabsWithinScope = ($dabs | Where-Object End -lt $NoFullBackupSince)
+					
+					$inputobject = $inputobject | Where-Object { $_.Name -in $dabsWithinScope.Database -and $_.Name -ne 'tempdb' }
+				} else {
+					$inputObject = $inputObject | Where-Object { $_.name -notin $dabs.Database -and $_.Name -ne 'tempdb' }
 				}
-				else {
-					$dabs = (Get-DbaBackuphistory -SqlInstance $server -LastFull -IgnoreCopyOnly -Since $NoFullBackupSince).Database
-				}
-				$inputobject = $inputObject | where-object { $_.name -notin $dabs -and $_.name -ne 'tempdb' }
+				
 			}
 			if ($NoLogBackup -or $NoLogBackupSince) {
-				if ($NoLogBackup) {
-					$dabs = (Get-DbaBackuphistory -SqlInstance $server -LastLog -IgnoreCopyOnly).Database
+				$dabs = (Get-DbaBackupHistory -SqlInstance $server -LastLog -IgnoreCopyOnly)
+				if ($null -ne $NoLogBackupSince) {
+					$dabsWithinScope = ($dabs | Where-Object End -lt $NoLogBackupSince)
+					$inputobject = $inputobject | Where-Object { $_.Name -in $dabsWithinScope.Database -and $_.Name -ne 'tempdb' -and $_.RecoveryModel -ne 'Simple' }
+				} else {
+					$inputobject = $inputObject | Where-Object { $_.Name -notin $dabs.Database -and $_.Name -ne 'tempdb' -and $_.RecoveryModel -ne 'Simple' }
 				}
-				else {
-					$dabs = (Get-DbaBackuphistory -SqlInstance $server -LastLog -IgnoreCopyOnly -Since $NoLogBackupSince).Database
-				}
-				$inputobject = $inputObject | where-object { $_.name -notin $dabs -and $_.name -ne 'tempdb' -and $_.RecoveryModel -ne 'simple' }
 			}
 
-			if ($null -ne $NoFullBackupSince) {
-				$inputobject = $inputobject | Where-Object LastBackupdate -lt $NoFullBackupSince
-			}
-			elseif ($null -ne $NoLogBackupSince) {
-				$inputobject = $inputobject | Where-Object LastBackupdate -lt $NoLogBackupSince
-			}
+			
+			
 			$defaults = 'ComputerName', 'InstanceName', 'SqlInstance', 'Name', 'Status', 'IsAccessible', 'RecoveryModel', 'Size as SizeMB', 'CompatibilityLevel as Compatibility', 'Collation', 'Owner', 'LastBackupDate as LastFullBackup', 'LastDifferentialBackupDate as LastDiffBackup', 'LastLogBackupDate as LastLogBackup'
 
 			if ($NoFullBackup -or $NoFullBackupSince -or $NoLogBackup -or $NoLogBackupSince) {
 				$defaults += ('Notes')
 			}
-			foreach ($db in $inputobject) {
-
-				$Notes = $null
-				if ($NoFullBackup -or $NoFullBackupSince) {
-					if (@($db.EnumBackupSets()).count -eq @($db.EnumBackupSets() | Where-Object { $_.IsCopyOnly }).count -and (@($db.EnumBackupSets()).count -gt 0)) {
-						$Notes = "Only CopyOnly backups"
+			
+			try {
+				foreach ($db in $inputobject) {
+					
+					$Notes = $null
+					if ($NoFullBackup -or $NoFullBackupSince) {
+						if (@($db.EnumBackupSets()).count -eq @($db.EnumBackupSets() | Where-Object { $_.IsCopyOnly }).count -and (@($db.EnumBackupSets()).count -gt 0)) {
+							$Notes = "Only CopyOnly backups"
+						}
 					}
+					Add-Member -Force -InputObject $db -MemberType NoteProperty BackupStatus -value $Notes
+					
+					Add-Member -Force -InputObject $db -MemberType NoteProperty -Name ComputerName -value $server.NetName
+					Add-Member -Force -InputObject $db -MemberType NoteProperty -Name InstanceName -value $server.ServiceName
+					Add-Member -Force -InputObject $db -MemberType NoteProperty -Name SqlInstance -value $server.DomainInstanceName
+					Select-DefaultView -InputObject $db -Property $defaults
 				}
-				Add-Member -InputObject $db -MemberType NoteProperty BackupStatus -value $Notes
-
-				Add-Member -InputObject $db -MemberType NoteProperty -Name ComputerName -value $server.NetName
-				Add-Member -InputObject $db -MemberType NoteProperty -Name InstanceName -value $server.ServiceName
-				Add-Member -InputObject $db -MemberType NoteProperty -Name SqlInstance -value $server.DomainInstanceName
-				Select-DefaultView -InputObject $db -Property $defaults
-
+			}
+			catch {
+				Stop-Message -ErrorRecord $_ -Target $instance -Message "Failure. Collection may have been modified. If so, please use parens (Get-DbaDatabase ....) | when working with commands that modify the collection such as Remove-DbaDatabase" -Continue
 			}
 		}
 	}
 }
-

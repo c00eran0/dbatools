@@ -51,7 +51,7 @@ Gets the cert1 certificate within the db1 database
 		[parameter(Mandatory, ValueFromPipeline)]
 		[Alias("ServerInstance", "SqlServer")]
 		[DbaInstanceParameter[]]$SqlInstance,
-		[System.Management.Automation.PSCredential]$SqlCredential,
+		[PSCredential][System.Management.Automation.CredentialAttribute()]$SqlCredential,
 		[object[]]$Database,
 		[object[]]$ExcludeDatabase,
 		[object[]]$Certificate,
@@ -65,7 +65,7 @@ Gets the cert1 certificate within the db1 database
 				$server = Connect-SqlInstance -SqlInstance $instance -SqlCredential $sqlcredential
 			}
 			catch {
-				Stop-Function -Message "Failed to connect to: $instance" -Target $instance -InnerErrorRecord $_ -Continue
+				Stop-Function -Message "Failure" -Category ConnectionError -ErrorRecord $_ -Target $instance -Continue
 			}
 			
 			$databases = Get-DbaDatabase -SqlInstance $server
@@ -101,10 +101,10 @@ Gets the cert1 certificate within the db1 database
 				
 				foreach ($cert in $certs) {
 					
-					Add-Member -InputObject $cert -MemberType NoteProperty -Name ComputerName -value $server.NetName
-					Add-Member -InputObject $cert -MemberType NoteProperty -Name InstanceName -value $server.ServiceName
-					Add-Member -InputObject $cert -MemberType NoteProperty -Name SqlInstance -value $server.DomainInstanceName
-					Add-Member -InputObject $cert -MemberType NoteProperty -Name Database -value $smodb.Name
+					Add-Member -Force -InputObject $cert -MemberType NoteProperty -Name ComputerName -value $server.NetName
+					Add-Member -Force -InputObject $cert -MemberType NoteProperty -Name InstanceName -value $server.ServiceName
+					Add-Member -Force -InputObject $cert -MemberType NoteProperty -Name SqlInstance -value $server.DomainInstanceName
+					Add-Member -Force -InputObject $cert -MemberType NoteProperty -Name Database -value $smodb.Name
 					
 					Select-DefaultView -InputObject $cert -Property ComputerName, InstanceName, SqlInstance, Database, Name, Subject, StartDate, ActiveForServiceBrokerDialog, ExpirationDate, Issuer, LastBackupDate, Owner, PrivateKeyEncryptionType, Serial
 				}

@@ -36,7 +36,7 @@ function Get-DbaLinkedServer {
 		[Parameter(Mandatory, ValueFromPipeline)]
 		[Alias("ServerInstance", "SqlServer")]
 		[DbaInstanceParameter[]]$SqlInstance,
-		[System.Management.Automation.PSCredential]$SqlCredential,
+		[PSCredential][System.Management.Automation.CredentialAttribute()]$SqlCredential,
 		[switch]$Silent
 	)
 	foreach ($Instance in $SqlInstance) {
@@ -45,7 +45,7 @@ function Get-DbaLinkedServer {
 			$server = Connect-SqlInstance -SqlInstance $instance -SqlCredential $sqlcredential
 		}
 		catch {
-			Stop-Function -Message "Failed to connect to: $instance" -Continue -Target $instance
+			Stop-Function -Message "Failure" -Category ConnectionError -ErrorRecord $_ -Target $instance -Continue
 		}
 
 		$lservers = $server.LinkedServers
@@ -55,11 +55,11 @@ function Get-DbaLinkedServer {
 		}
 
 		foreach ($ls in $lservers) {
-			Add-Member -InputObject $ls -MemberType NoteProperty -Name ComputerName -value $server.NetName
-			Add-Member -InputObject $ls -MemberType NoteProperty -Name InstanceName -value $server.ServiceName
-			Add-Member -InputObject $ls -MemberType NoteProperty -Name SqlInstance -value $server.DomainInstanceName
-			Add-Member -InputObject $ls -MemberType NoteProperty -Name Impersonate -value $ls.LinkedServerLogins.Impersonate
-			Add-Member -InputObject $ls -MemberType NoteProperty -Name RemoteUser -value $ls.LinkedServerLogins.RemoteUser
+			Add-Member -Force -InputObject $ls -MemberType NoteProperty -Name ComputerName -value $server.NetName
+			Add-Member -Force -InputObject $ls -MemberType NoteProperty -Name InstanceName -value $server.ServiceName
+			Add-Member -Force -InputObject $ls -MemberType NoteProperty -Name SqlInstance -value $server.DomainInstanceName
+			Add-Member -Force -InputObject $ls -MemberType NoteProperty -Name Impersonate -value $ls.LinkedServerLogins.Impersonate
+			Add-Member -Force -InputObject $ls -MemberType NoteProperty -Name RemoteUser -value $ls.LinkedServerLogins.RemoteUser
 
 			Select-DefaultView -InputObject $ls -Property ComputerName, InstanceName, SqlInstance, Name, 'DataSource as RemoteServer', ProductName, Impersonate, RemoteUser, 'DistPublisher as Publisher', Distributor, DateLastModified
 		}
