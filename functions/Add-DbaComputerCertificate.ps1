@@ -1,64 +1,64 @@
 ﻿function Add-DbaComputerCertificate {
   <#
-.SYNOPSIS
-Adds a computer certificate - useful for older systems
+    .SYNOPSIS
+      Adds a computer certificate - useful for older systems.
 
-.DESCRIPTION
-Adds a computer certificate from a local or remote compuer
+    .DESCRIPTION
+      Adds a computer certificate from a local or remote computer.
 
-.PARAMETER ComputerName
-The target SQL Server - defaults to localhost
+    .PARAMETER ComputerName
+      The target SQL Server. Defaults to localhost.
 
-.PARAMETER Credential
-Allows you to login to $ComputerName using alternative credentials
+    .PARAMETER Credential
+      Allows you to login to $ComputerName using alternative credentials.
 
-.PARAMETER Password
-The password for the certificate, if it is password protected
+    .PARAMETER Password
+      The password for the certificate, if it is password protected.
 
-.PARAMETER Certificate
-The target certificate object
+    .PARAMETER Certificate
+      The target certificate object.
 
-.PARAMETER Path
-The local path to the target certificate object
+    .PARAMETER Path
+      The local path to the target certificate object.
 
-.PARAMETER Store
-Certificate store - defaults to LocalMachine
+    .PARAMETER Store
+      Certificate store. Default is LocalMachine.
 
-.PARAMETER Folder
-Certificate folder - defaults to My (Personal)
-	
-.PARAMETER Silent 
-Use this switch to disable any kind of verbose messages
+    .PARAMETER Folder
+      Certificate folder. Default is My (Personal).
+    
+    .PARAMETER WhatIf
+        If this switch is enabled, no actions are performed but informational messages will be displayed that explain what would happen if the command were to run.
 
-.PARAMETER WhatIf 
-Shows what would happen if the command were to run. No actions are actually performed. 
+    .PARAMETER Confirm
+        If this switch is enabled, you will be prompted for confirmation before executing any operations that change state.
 
-.PARAMETER Confirm 
-Prompts you for confirmation before executing any changing operations within the command. 
+    .PARAMETER Silent
+      If this switch is enabled, the internal messaging functions will be silenced.
+        
+    .NOTES
+      Tags: Certificate
 
-.NOTES
-Tags: Certificate
+      Website: https://dbatools.io
+      Copyright: (C) Chrissy LeMaire, clemaire@gmail.com
+      License: GNU GPL v3 https://opensource.org/licenses/GPL-3.0
 
-Website: https://dbatools.io
-Copyright: (C) Chrissy LeMaire, clemaire@gmail.com
-License: GNU GPL v3 https://opensource.org/licenses/GPL-3.0
+    .EXAMPLE
+      Add-DbaComputerCertificate -ComputerName Server1 -Path C:\temp\cert.cer
 
-.EXAMPLE
-Add-DbaComputerCertificate -ComputerName Server1 -Path C:\temp\cert.cer
+      Adds the local C:\temp\cer.cer to the remote server Server1 in LocalMachine\My (Personal).
 
-Adds the local C:\temp\cer.cer to the remote server Server1 in LocalMachine\My (Personal)
+    .EXAMPLE
+      Add-DbaComputerCertificate -Path C:\temp\cert.cer
 
-.EXAMPLE
-Add-DbaComputerCertificate -Path C:\temp\cert.cer
-
-Adds the local C:\temp\cer.cer to the local computer's LocalMachine\My (Personal) certificate store
+      Adds the local C:\temp\cer.cer to the local computer's LocalMachine\My (Personal) certificate store.
 
 #>
   [CmdletBinding(SupportsShouldProcess, ConfirmImpact = "High")]
   param (
     [Alias("ServerInstance", "SqlServer", "SqlInstance")]
     [DbaInstanceParameter[]]$ComputerName = $env:COMPUTERNAME,
-    [PSCredential][System.Management.Automation.CredentialAttribute()]$Credential,
+    [PSCredential]$Credential,
     [securestring]$Password,
     [parameter(ValueFromPipeline)]
     [System.Security.Cryptography.X509Certificates.X509Certificate2]$Certificate,
