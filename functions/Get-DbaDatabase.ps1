@@ -190,7 +190,7 @@
             }
 
             $Readonly = switch ( $Access ) { 'Readonly' { @($true) } 'ReadWrite' { @($false) } default { @($true,$false)} }
-			$Encrypt = switch ( Test-Bound $Encrypted) { $true { @($true) } default { @($true,$false)} }
+			$Encrypt = switch ( Test-Bound $Encrypted) { $true { @($true) } default { @($true,$false,$null)} }
 
 			$inputobject = $server.Databases |
                 Where-Object {
@@ -199,7 +199,7 @@
                     ($_.Owner -in $Owner -or !$Owner) -and 
                     $_.ReadOnly -in $Readonly -and 
                     $_.IsSystemObject -in $DBType -and 
-                    $_.Status -in $Status -and 
+                    ((Compare-Object @($_.Status.tostring().split(',').trim()) $Status -ExcludeDifferent -IncludeEqual).inputobject.count -ge 1 -or !$status) -and 
                     $_.RecoveryModel -in $RecoveryModel -and 
                     $_.EncryptionEnabled -in $Encrypt
                 }
